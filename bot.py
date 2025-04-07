@@ -1,20 +1,18 @@
 import os
 import json
 import sqlite3
-from aiogram import Bot, Dispatcher, types
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.utils import executor
-from dotenv import load_dotenv
 import asyncio
+from aiogram import Bot, Router, types
+from aiogram.filters import Command
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from dotenv import load_dotenv
 
-# .env faylidan tokenni olish
-load_dotenv()
-API_TOKEN = os.getenv("7814722343:AAFTjh31Li3YcJamaexorwWUjJqR9nEr3mw")
-
-# Bot va Dispatcher
-bot = Bot(token=API_TOKEN)
+# Router va Bot
+router = Router()
 storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+bot = Bot(token=os.getenv("7814722343:AAFTjh31Li3YcJamaexorwWUjJqR9nEr3mw"))
 
 # Ma'lumotlar bazasini yaratish
 def init_db():
@@ -26,7 +24,7 @@ def init_db():
     conn.close()
 
 # Start komandasi
-@dp.message_handler(commands=['start'])
+@router.message(Command("start"))
 async def send_welcome(message: types.Message):
     user_id = message.from_user.id
     conn = sqlite3.connect("users.db")
@@ -43,7 +41,7 @@ async def send_welcome(message: types.Message):
                         "O‘yinni boshlash uchun tugmani bosing!", reply_markup=keyboard)
 
 # Hisobni ko‘rish
-@dp.message_handler(lambda message: message.text == "📊 Hisobim")
+@router.message(lambda message: message.text == "📊 Hisobim")
 async def check_balance(message: types.Message):
     user_id = message.from_user.id
     conn = sqlite3.connect("users.db")
@@ -57,7 +55,7 @@ async def check_balance(message: types.Message):
                         f"Referallar: {referrals}")
 
 # Referral link
-@dp.message_handler(lambda message: message.text == "👥 Do‘st taklif qilish")
+@router.message(lambda message: message.text == "👥 Do‘st taklif qilish")
 async def invite_friend(message: types.Message):
     user_id = message.from_user.id
     referral_link = f"https://t.me/Dunaibiznesbot?start={user_id}"
@@ -65,7 +63,7 @@ async def invite_friend(message: types.Message):
                         f"Sizning referral linkingiz: {referral_link}")
 
 # Web App’dan ma'lumot qabul qilish
-@dp.message_handler(content_types=['web_app_data'])
+@router.message(content_types=['web_app_data'])
 async def web_app_data(message: types.Message):
     data = json.loads(message.web_app_data.data)
     user_id = data['userId']
@@ -80,9 +78,12 @@ async def web_app_data(message: types.Message):
     await message.reply(f"Hisobingiz yangilandi! Jami coinlar: {coins}")
 
 # Botni ishga tushirish
-async def on_startup(_):
+async def main():
     init_db()
+    dp = Dispatcher(storage=storage)
+    dp.include_router(router)
     print("Bot ishga tushdi!")
+    await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    asyncio.run(dp.start_polling(on_startup=on_startup))
+    asyncio.run(main())
