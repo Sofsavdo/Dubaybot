@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 # Router va Bot
 router = Router()
 storage = MemoryStorage()
-bot = Bot(token=os.getenv("7814722343:AAFTjh31Li3YcJamaexorwWUjJqR9nEr3mw"))
+bot = Bot(token=os.getenv("7984746447:AAFRxkL7oBEe1Bzxe5gFi3Igxvvh-6bJ9YU"))
 
 # Ma'lumotlar bazasini yaratish
 def init_db():
@@ -58,7 +58,7 @@ async def check_balance(message: types.Message):
 @router.message(lambda message: message.text == "👥 Do‘st taklif qilish")
 async def invite_friend(message: types.Message):
     user_id = message.from_user.id
-    referral_link = f"https://t.me/Dunaibiznesbot?start={user_id}"
+    referral_link = f"https://t.me/DubayBiznesBot?start={user_id}"
     await message.reply(f"Do‘stingizni taklif qiling va bonus oling!\n"
                         f"Sizning referral linkingiz: {referral_link}")
 
