@@ -1,8 +1,11 @@
 import os
-from aiogram import Bot, Dispatcher, types, executor
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+import json
 import sqlite3
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils import executor
 from dotenv import load_dotenv
+import asyncio
 
 # .env faylidan tokenni olish
 load_dotenv()
@@ -33,7 +36,7 @@ async def send_welcome(message: types.Message):
     conn.close()
 
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    web_app = types.WebAppInfo(url="https://sofsavdo.github.io/dubaygame/game.html")  # Bu URL ni keyin o‘zgartiramiz
+    web_app = types.WebAppInfo(url="https://sofsavdo.github.io/dubaygame/game.html")
     keyboard.add(types.KeyboardButton("🎮 O‘yinni boshlash", web_app=web_app))
     keyboard.add("📊 Hisobim", "👥 Do‘st taklif qilish")
     await message.reply("Dubay Biznes Botga Xush kelibsiz!\n"
@@ -57,11 +60,29 @@ async def check_balance(message: types.Message):
 @dp.message_handler(lambda message: message.text == "👥 Do‘st taklif qilish")
 async def invite_friend(message: types.Message):
     user_id = message.from_user.id
-    referral_link = f"https://t.me/DubayBiznesBot?start={user_id}"
+    referral_link = f"https://t.me/Dunaibiznesbot?start={user_id}"
     await message.reply(f"Do‘stingizni taklif qiling va bonus oling!\n"
                         f"Sizning referral linkingiz: {referral_link}")
 
+# Web App’dan ma'lumot qabul qilish
+@dp.message_handler(content_types=['web_app_data'])
+async def web_app_data(message: types.Message):
+    data = json.loads(message.web_app_data.data)
+    user_id = data['userId']
+    coins = data['coins']
+    
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    c.execute("UPDATE users SET coins = ? WHERE user_id = ?", (coins, user_id))
+    conn.commit()
+    conn.close()
+    
+    await message.reply(f"Hisobingiz yangilandi! Jami coinlar: {coins}")
+
 # Botni ishga tushirish
-if __name__ == '__main__':
+async def on_startup(_):
     init_db()
-    executor.start_polling(dp, skip_updates=True)
+    print("Bot ishga tushdi!")
+
+if __name__ == '__main__':
+    asyncio.run(dp.start_polling(on_startup=on_startup))
